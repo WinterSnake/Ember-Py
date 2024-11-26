@@ -5,14 +5,10 @@
 ##-------------------------------##
 
 ## Imports
-from .lexer import lex_file
+from .lexer import Lexer
 from .token import Token
 
 ## Constants
 __all__: tuple[str, ...] = (
-    # -Token
-    "Token",
-    # -Lexer
-    "lex_file",
-    # -Parser
+    "Token", "Lexer",
 )

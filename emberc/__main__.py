@@ -8,12 +8,12 @@
 import sys
 from pathlib import Path
 
-from .frontend import lex_file
+from .frontend import Lexer
 
 ## Constants
 
 
 ## Body
-tokens = lex_file("./tests/test-00.ember")
-for token in tokens:
+lexer = Lexer("./tests/test-00.ember")
+for token in lexer.lex():
     print(token)

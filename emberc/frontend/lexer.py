@@ -7,16 +7,15 @@
 ##-------------------------------##
 
 ## Imports
+from __future__ import annotations
+from collections.abc import Generator
+from enum import IntEnum, auto
 from pathlib import Path
+from typing import TextIO
 
 from .token import Token
 
 ## Constants
-KEYWORDS: dict[str, Token.Type] = {
-    'fn': Token.Type.KeywordFunction,
-    # -Types
-    'void': Token.Type.TypeVoid,
-}
 SYMBOLS: tuple[str, ...] = (
     '(', ')', '{', '}', ':', ';',
     # -Math
@@ -28,119 +27,164 @@ STATES: tuple[str, ...] = (
     "Number",
 )
 
-
 ## Functions
-def lex_file(file: str) -> list[Token]:
+def _get_symbol_type(char: str) -> Token.Type:
     """
     """
-    tokens: list[Token] = []
-    state: str = STATES[0]
-    buffer: str = ""
-    position = [0, 1]
-    fp = open(file, 'r')
-    while char := fp.read(1):
-        position[1] += 1
-        # -Whitespace
-        if char.isspace():
-            # --State[Word]
-            if state == STATES[1]:
-                state = STATES[0]
-                token = create_word_token(buffer)
-                tokens.append(token)
-                buffer = ""
-            # --State[Number]
-            elif state == STATES[2]:
-                state = STATES[0]
-                token = create_number_token(buffer)
-                tokens.append(token)
-                buffer = ""
-            # --Char[NEW LINE]
-            if char == '\n':
-                position = [position[0] + 1, 0]
-            continue
-        # -Character
-        elif char.isalpha() or char == '_':
-            # --State[None]
-            if state == STATES[0]:
-                state = STATES[1]
-                buffer = char
-            # --State[Word]
-            elif state == STATES[1]:
-                buffer += char
-            continue
-        # -Symbol
-        elif char in SYMBOLS:
-            # --State[Word]
-            if state == STATES[1]:
-                state = STATES[0]
-                token = create_word_token(buffer)
-                tokens.append(token)
-                buffer = ""
-            # --State[Number]
-            elif state == STATES[2]:
-                state = STATES[0]
-                token = create_number_token(buffer)
-                tokens.append(token)
-                buffer = ""
-            token = create_symbol_token(char)
-            tokens.append(token)
-            continue
-        # -Numerical
-        elif char.isdigit():
-            # --State[None]
-            if state == STATES[0]:
-                state = STATES[2]
-                buffer = char
-            # --State[Word]
-            elif state == STATES[1]:
-                buffer += char
-            # --State[Number]
-            elif state == STATES[2]:
-                buffer += char
-            continue
-    fp.close()
-    return tokens
 
-
-def create_word_token(buffer: str) -> Token:
-    """
-    """
-    _type = KEYWORDS.get(buffer, Token.Type.Identifier)
-    if _type is Token.Type.Identifier:
-        return Token(_type, buffer)
-    return Token(_type, None)
-
-
-def create_number_token(buffer: str) -> Token:
-    """
-    """
-    return Token(Token.Type.NumberLiteral, buffer)
-
-
-def create_symbol_token(buffer: str) -> Token:
-    """
-    """
-    match buffer:
+    match char:
         case '(':
-            return Token(Token.Type.SymbolLParen, None)
+            return Token.Type.SymbolLParen
         case ')':
-            return Token(Token.Type.SymbolRParen, None)
+            return Token.Type.SymbolRParen
         case '{':
-            return Token(Token.Type.SymbolLBracket, None)
+            return Token.Type.SymbolLBracket
         case '}':
-            return Token(Token.Type.SymbolRBracket, None)
+            return Token.Type.SymbolRBracket
         case ':':
-            return Token(Token.Type.SymbolColon, None)
+            return Token.Type.SymbolColon
         case ';':
-            return Token(Token.Type.SymbolSemicolon, None)
+            return Token.Type.SymbolSemicolon
         # -Math
         case '+':
-            return Token(Token.Type.SymbolPlus, None)
+            return Token.Type.SymbolPlus
         case '-':
-            return Token(Token.Type.SymbolMinus, None)
+            return Token.Type.SymbolMinus
         case '*':
-            return Token(Token.Type.SymbolAsterisk, None)
+            return Token.Type.SymbolAsterisk
         case '/':
-            return Token(Token.Type.SymbolFSlash, None)
+            return Token.Type.SymbolFSlash
         case '%':
-            return Token(Token.Type.SymbolPercent, None)
+            return Token.Type.SymbolPercent
+    assert False, "Unreachable"
+
+def _get_word_type(word: str) -> Token.Type:
+    """
+    """
+    return {
+        'fn': Token.Type.KeywordFunction,
+        # -Types
+        'void': Token.Type.TypeVoid,
+    }.get(word, Token.Type.Identifier)
+
+
+## Classes
+class Lexer:
+    """
+    """
+
+    # -Constructor
+    def __init__(self, file: Path | str) -> None:
+        if isinstance(file, str):
+            file = Path(file)
+        self.file: Path = file
+        self.row: int = 1
+        self.column: int = 0
+        self.offset: int = 0
+        self._fp: TextIO | None = None
+        self.state: Lexer.State = Lexer.State.Default
+
+    # -Instance Methods
+    def lex(self) -> Generator[Token, None, None]:
+        self._fp = self.file.open('r')
+        buffer: str = ""
+        token_position: tuple[int, int, int] | None = None
+        while c := self._advance():
+            # -Whitespace
+            if c.isspace():
+                match self.state:
+                    # --State[Word]
+                    case Lexer.State.Word:
+                        assert token_position is not None
+                        _type = _get_word_type(buffer)
+                        value: str | None = None
+                        if _type is Token.Type.Identifier:
+                            value = buffer
+                        yield Token(self.file, token_position, _type, value)
+                    # --State[Number]
+                    case Lexer.State.Number:
+                        assert token_position is not None
+                        yield Token(self.file, token_position, Token.Type.NumberLiteral, buffer)
+                self.state = Lexer.State.Default
+                buffer = ""
+                token_position = None
+            # -Word
+            elif c.isalpha() or c == '_':
+                match self.state:
+                    # --State[Default]
+                    case Lexer.State.Default:
+                        self.state = Lexer.State.Word
+                        token_position = self.position
+                        buffer = c
+                    # --State[Word]
+                    case Lexer.State.Word:
+                        buffer += c
+                    # --State[Number]
+                    case Lexer.State.Number:
+                        assert False, "Unreachable"
+            # -Number
+            elif c.isdigit():
+                match self.state:
+                    # --State[Default]
+                    case Lexer.State.Default:
+                        self.state = Lexer.State.Number
+                        token_position = self.position
+                        buffer = c
+                    # --State[Word]
+                    case Lexer.State.Word:
+                        assert False, "Unreachable"
+                    # --State[Number]
+                    case Lexer.State.Number:
+                        buffer += c
+            # -Symbol
+            elif c in SYMBOLS:
+                match self.state:
+                    # --State[Word]
+                    case Lexer.State.Word:
+                        assert token_position is not None
+                        _type = _get_word_type(buffer)
+                        value: str | None = None
+                        if _type is Token.Type.Identifier:
+                            value = buffer
+                        yield Token(self.file, token_position, _type, value)
+                        self.state = Lexer.State.Default
+                        self.buffer = ""
+                    # --State[Number]
+                    case Lexer.State.Number:
+                        assert token_position is not None
+                        yield Token(self.file, token_position, Token.Type.NumberLiteral, buffer)
+                        self.state = Lexer.State.Default
+                        self.buffer = ""
+                # --State[Default]
+                _type = _get_symbol_type(c)
+                yield Token(self.file, self.position, _type, None)
+        self._fp.close()
+
+    # -Instance Methods: Private
+    def _advance(self) -> str | None:
+        assert self._fp is not None
+        if self._fp.closed:
+            return None
+        char: str = self._fp.read(1)
+        if char is None:
+            return None
+        if char == '\n':
+            self.row += 1
+            self.column = 0
+        else:
+            self.column += 1
+        self.offset += 1
+        return char
+
+    # -Properties
+    @property
+    def position(self) -> tuple[int, int, int]:
+        return (self.row, self.column, self.offset)
+
+    # -Sub-Classes
+    class State(IntEnum):
+        '''
+        '''
+        Default = auto()
+        Word = auto()
+        Number = auto()
