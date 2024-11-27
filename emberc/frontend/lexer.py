@@ -56,8 +56,7 @@ def _get_symbol_type(char: str) -> Token.Type | None:
             return Token.Type.SymbolFSlash
         case '%':
             return Token.Type.SymbolPercent
-        case '_':
-            return None
+    return None
 
 
 def _get_word_data(buffer: str) -> tuple[Token.Type, str | None]:
@@ -125,7 +124,9 @@ class Lexer:
                     if c.isspace():
                         assert token_position is not None
                         state_new = Lexer.State.Default
-                        token = Token(self.file, token_position, _get_symbol_type(buffer), None)
+                        symbol_type = _get_symbol_type(buffer)
+                        assert symbol_type is not None
+                        token = Token(self.file, token_position, symbol_type, None)
                         token_position = None
                         buffer = ""
                         yield token
@@ -135,7 +136,9 @@ class Lexer:
                             buffer += c
                         else:
                             assert token_position is not None
-                            token = Token(self.file, token_position, _get_symbol_type(buffer), None)
+                            symbol_type = _get_symbol_type(buffer)
+                            assert symbol_type is not None
+                            token = Token(self.file, token_position, symbol_type, None)
                             token_position = self.position
                             buffer = c
                             yield token
@@ -143,7 +146,9 @@ class Lexer:
                     elif c.isdigit():
                         assert token_position is not None
                         state_new = Lexer.State.Number
-                        token = Token(self.file, token_position, _get_symbol_type(buffer), None)
+                        symbol_type = _get_symbol_type(buffer)
+                        assert symbol_type is not None
+                        token = Token(self.file, token_position, symbol_type, None)
                         token_position = self.position
                         buffer = c
                         yield token
@@ -151,7 +156,9 @@ class Lexer:
                     elif c.isalpha():
                         assert token_position is not None
                         state_new = Lexer.State.Word
-                        token = Token(self.file, token_position, _get_symbol_type(buffer), None)
+                        symbol_type = _get_symbol_type(buffer)
+                        assert symbol_type is not None
+                        token = Token(self.file, token_position, symbol_type, None)
                         token_position = self.position
                         buffer = c
                         yield token

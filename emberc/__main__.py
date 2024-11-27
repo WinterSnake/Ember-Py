@@ -15,7 +15,7 @@ from .middleware.nodes import NodeBinaryExpression
 
 
 ## Functions
-def visit_node(node) -> None:
+def visit_node(node) -> int:
     if isinstance(node, NodeBinaryExpression):
         lhs = visit_node(node.lhs)
         rhs = visit_node(node.rhs)

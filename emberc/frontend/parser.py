@@ -63,7 +63,7 @@ class Parser:
     # -Instance Methods
     # -TODO: Error handling + reporting
     # --Parsing
-    def parse(self) -> NodeBase:
+    def parse(self) -> list[NodeBase]:
         '''
         '''
         statements: list[NodeBase] = []
@@ -82,7 +82,7 @@ class Parser:
     def _parse_expression(self) -> NodeBase:
         '''
         '''
-        lhs: BaseNode = self._parse_primary()
+        lhs: NodeBase = self._parse_primary()
         node_stack: list[NodeBase] = [lhs]
         operator_stack: list[NodeBinaryExpression.Type] = []
         # -Iterate through operator tokens
@@ -91,9 +91,13 @@ class Parser:
             Token.Type.SymbolAsterisk, Token.Type.SymbolFSlash,
             Token.Type.SymbolPercent
         ):
-            binary_operator = _get_binary_operator(self._advance().type)
+            op_token = self._advance()
+            assert op_token is not None
+            binary_operator = _get_binary_operator(op_token.type)
+            assert binary_operator is not None
             precedence: int = _get_operator_precedence(binary_operator)
             # -Operator stack precedence
+            rhs: NodeBase
             while operator_stack and _get_operator_precedence(operator_stack[-1]) >= precedence:
                 rhs = node_stack.pop()
                 lhs = node_stack.pop()
@@ -101,7 +105,7 @@ class Parser:
                 node_stack.append(NodeBinaryExpression(operator, lhs, rhs))
             # -Add next leaf
             operator_stack.append(binary_operator)
-            rhs: BaseNode = self._parse_primary()
+            rhs = self._parse_primary()
             node_stack.append(rhs)
         # -Iterate over operator stack
         while len(operator_stack) > 0:
@@ -115,7 +119,9 @@ class Parser:
     def _parse_primary(self) -> NodeBase:
         '''
         '''
-        if self._peek().type is Token.Type.SymbolLParen:
+        n_token = self._peek()
+        assert n_token is not None
+        if n_token.type is Token.Type.SymbolLParen:
             self._consume()
             expr = self._parse_expression()
             self._consume(Token.Type.SymbolRParen)
@@ -126,8 +132,11 @@ class Parser:
         '''
         '''
         token = self._advance()
+        assert token is not None
         if token.type is Token.Type.NumberLiteral:
+            assert token.value is not None
             return NodeLiteral(NodeLiteral.Type.Number, int(token.value))
+        assert False, "Unreachable"
 
     # --Control
     def _advance(self) -> Token | None:
