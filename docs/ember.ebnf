@@ -1,0 +1,4 @@
+program: statements*;
+statement: expression ';'
+expression: primary | primary ('+' | '-' | '*' | '/' | '%') primary;
+primary: LITERAL | '(' expression ')';
