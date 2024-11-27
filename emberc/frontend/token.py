@@ -63,8 +63,6 @@ class Token:
         - Represents the symbol, keyword, or literal for the token
         '''
 
-        # -Keywords
-        KeywordFunction = auto()
         # -Symbols
         SymbolLParen = auto()
         SymbolRParen = auto()

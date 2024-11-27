@@ -3,7 +3,7 @@
 ## Ember Compiler: Middleware    ##
 ## Written By: Ryan Smith        ##
 ##-------------------------------##
-## Node: Binary Expression       ##
+## Node: Base                    ##
 ##-------------------------------##
 
 ## Imports
@@ -15,38 +15,51 @@ from .base import NodeBase
 
 
 ## Classes
-class NodeBinaryExpression(NodeBase):
+class NodeExpressionBinary(NodeBase):
     """
+    Ember Language AST Node: Expression Binary
+    - Node that represents a binary expression and it's
+    operator and lhs/rhs nodes
     """
 
     # -Constructor
-    def __init__(self, _type: Type, lhs: NodeBase, rhs: NodeBase) -> None:
-        self.type: NodeBinaryExpression.Type = _type
+    def __init__(
+        self, file: Path, position: tuple[int, int, int],
+        _type: Type, lhs: NodeBase, rhs: NodeBase
+    ) -> None:
+        super().__init__(file, position)
+        self.type: NodeExpressionBinary.Type = _type
         self.lhs: NodeBase = lhs
         self.rhs: NodeBase = rhs
 
     # -Dunder Methods
     def __repr__(self) -> str:
-        return f"NodeBinaryExpression(type={self.type.name}, lhs={repr(self.lhs)}, rhs={repr(self.rhs)})"
+        return (f"NodeExpressionBinary({super().__repr__()}, "
+                f"type={self.type.name}, lhs={repr(self.lhs)}, "
+                f"rhs={repr(self.rhs)})")
 
     def __str__(self) -> str:
-        symbol: str
+        symbol: str = ''
         match self.type:
-            case NodeBinaryExpression.Type.Add:
+            case NodeExpressionBinary.Type.Add:
                 symbol = '+'
-            case NodeBinaryExpression.Type.Sub:
+            case NodeExpressionBinary.Type.Sub:
                 symbol = '-'
-            case NodeBinaryExpression.Type.Mul:
+            case NodeExpressionBinary.Type.Mul:
                 symbol = '*'
-            case NodeBinaryExpression.Type.Div:
+            case NodeExpressionBinary.Type.Div:
                 symbol = '/'
-            case NodeBinaryExpression.Type.Mod:
+            case NodeExpressionBinary.Type.Mod:
                 symbol = '%'
+            case _:
+                raise TypeError(f"Unhandled type '{self.type.name}'")
         return f"({self.lhs} {symbol} {self.rhs})"
 
     # -Sub-Classes
     class Type(IntEnum):
         '''
+        Ember Binary Type
+        - Represents the node's operator value
         '''
         Add = auto()
         Sub = auto()

@@ -59,9 +59,10 @@ def _get_word_type(buffer: str) -> Token.Type:
     Matches the buffer string to a mapped keyword and returns
     the associated token type if applicable or returns Identifier type
     """
+    raise NotImplementedError("_get_word_type() not supported")
     return {
         # -Keywords
-        'fn': Token.Type.KeywordFunction,
+        # -Builtin Types
     }.get(buffer, Token.Type.Identifier)
 
 
