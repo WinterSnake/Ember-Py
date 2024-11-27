@@ -15,12 +15,15 @@ from pathlib import Path
 ## Classes
 class Token:
     """
+    Ember Language Token
+    - Represents a token element while lexing the Ember grammar
+    Contains it's type in the grammar as well as it's value if applicable
     """
 
     # -Constructor
     def __init__(
         self, file: Path, position: tuple[int, int, int],
-        _type: Type, value: str | None
+        _type: Type, value: str | None = None
     ) -> None:
         self.file: Path = file
         self.position: tuple[int, int, int] = position
@@ -29,14 +32,16 @@ class Token:
 
     # -Dunder Methods
     def __repr__(self) -> str:
-        return "Token()"
+        _repr = f"Token(file={self.file}, position={self.position}, type={self.type.name}"
+        if self.value is not None:
+            _repr += f", value={self.value}"
+        return _repr + ')'
 
     def __str__(self) -> str:
-        _str: str = f"Token[{self.file}:{self.row}:{self.column}]"
-        _str += f"{{type: {self.type.name}"
+        _str = f"[{self.file}:{self.row}:{self.column}]{self.type.name}"
         if self.value is not None:
-            _str += f", value: {self.value}"
-        return _str + '}'
+            _str += f"::{self.value}"
+        return _str
 
     # -Properties
     @property
@@ -54,7 +59,10 @@ class Token:
     # -Sub-Classes
     class Type(IntEnum):
         '''
+        Ember Token Type
+        - Represents the symbol, keyword, or literal for the token
         '''
+
         # -Keywords
         KeywordFunction = auto()
         # -Symbols
@@ -64,12 +72,11 @@ class Token:
         SymbolRBracket = auto()
         SymbolColon = auto()
         SymbolSemicolon = auto()
-        # -Symbols: Math
         SymbolPlus = auto()
         SymbolMinus = auto()
         SymbolAsterisk = auto()
         SymbolFSlash = auto()
         SymbolPercent = auto()
         # -Literals
-        NumberLiteral = auto()
         Identifier = auto()
+        Number = auto()
