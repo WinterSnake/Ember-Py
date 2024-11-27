@@ -11,7 +11,8 @@ from collections.abc import Generator
 
 from .token import Token
 from ..middleware.nodes import (
-    NodeBase, NodeBinaryExpression, NodeLiteral
+    NodeBase, NodeFunctionDefinition,
+    NodeBinaryExpression, NodeLiteral
 )
 
 
@@ -63,14 +64,31 @@ class Parser:
     # -Instance Methods
     # -TODO: Error handling + reporting
     # --Parsing
-    def parse(self) -> list[NodeBase]:
+    def parse(self) -> NodeBase:
         '''
         '''
-        statements: list[NodeBase] = []
-        while self._peek() is not None:
+        return self._parse_function()
+
+    def _parse_function(self) -> NodeBase:
+        '''
+        '''
+        self._consume(Token.Type.KeywordFunction)
+        id_token = self._advance()
+        assert id_token is not None and id_token.type is Token.Type.Identifier and id_token.value is not None
+        self._consume(Token.Type.SymbolLParen)
+        self._consume(Token.Type.SymbolRParen)
+        self._consume(Token.Type.SymbolColon)
+        return_token = self._advance()
+        assert return_token is not None and return_token.type is Token.Type.Identifier and return_token.value is not None
+        self._consume(Token.Type.SymbolLBracket)
+        body: list[NodeBase] = []
+        n_token = self._peek()
+        while n_token is not None and n_token.type is not Token.Type.SymbolRBracket:
             statement = self._parse_statement()
-            statements.append(statement)
-        return statements
+            body.append(statement)
+            n_token = self._peek()
+        self._consume(Token.Type.SymbolRBracket)
+        return NodeFunctionDefinition(id_token.value, return_token.value, body)
 
     def _parse_statement(self) -> NodeBase:
         '''
@@ -157,13 +175,6 @@ class Parser:
         elif _type is not None and token.type is not _type:
             print("Invalid consume")
 
-    def _peek(self) -> Token | None:
-        '''
-        '''
-        if self._buffer is None:
-            self._buffer = next(self._token_generator, None)
-        return self._buffer
-
     def _match(self, *types: Token.Type) -> bool:
         '''
         '''
@@ -171,3 +182,10 @@ class Parser:
         if token is not None and token.type in types:
             return True
         return False
+
+    def _peek(self) -> Token | None:
+        '''
+        '''
+        if self._buffer is None:
+            self._buffer = next(self._token_generator, None)
+        return self._buffer
