@@ -87,7 +87,8 @@ class Lexer:
         self._fp: TextIO | None = None
 
     # -Instance Methods
-    # --Lex
+    # -TODO: Error handling + reporting
+    # --Lexing
     def lex(self) -> Generator[Token, None, None]:
         '''
         '''

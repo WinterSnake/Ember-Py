@@ -57,8 +57,6 @@ class Token:
         '''
         # -Keywords
         KeywordFunction = auto()
-        # -Keyword: Types
-        TypeVoid = auto()
         # -Symbols
         SymbolLParen = auto()
         SymbolRParen = auto()
