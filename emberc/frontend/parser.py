@@ -13,7 +13,9 @@ from typing import TYPE_CHECKING, Any
 
 from .token import OPERATOR_COUNT, Token
 from ..middleware.nodes import (
-    NodeBase, NodeConditional,
+    NodeBase,
+    NodeConditional,
+    NodeVarDeclaration, NodeVarAssignment,
     NodeExpressionBinary, NodeLiteral,
 )
 
@@ -87,11 +89,16 @@ class Parser:
     def _parse_statement(self) -> NodeBase:
         '''
         Grammar[Statement]
-        conditional | (expression ';');
+        conditional | (declaration | expression) ';';
         '''
+        # -Rule: conditional
         if self._consume(Token.Type.KeywordIf):
             return self._parse_conditional()
-        node = self._parse_expression()
+        node: NodeBase | None
+        # -Rule: declaration
+        if (node := self._parse_declaration()) is None:
+            # -Rule: expression
+            node = self._parse_expression()
         self._expect(Token.Type.SymbolSemicolon)
         return node
 
@@ -111,7 +118,7 @@ class Parser:
             true_block.append(self._parse_statement())
         self._expect(Token.Type.SymbolRBracket)
         false_block: tuple[NodeBase, ...] | None = None
-        if self._consume(Token.Type.KeywordElse):
+        if self._consume(Token.Type.KeywordElse, False):
             block: list[NodeBase] = []
             self._expect(Token.Type.SymbolLBracket)
             while token := self._peek():
@@ -122,12 +129,33 @@ class Parser:
             false_block = tuple(block)
         return NodeConditional(condition, tuple(true_block), false_block)
 
+    def _parse_declaration(self) -> NodeBase | None:
+        '''
+        Grammar[Declaration]
+        'int32' IDENTIFIER ('=' expression)?;
+        '''
+        if not self._matches(Token.Type.TypeInt32):
+            return None
+        _type = self._next()
+        _id = self._next()
+        assert _id.type is Token.Type.Identifier and _id.value is not None
+        initializer: NodeBase | None = None
+        if self._consume(Token.Type.SymbolEq):
+            initializer = self._parse_expression()
+        return NodeVarDeclaration(_id.file, _id.position, _id.value, initializer)
+
+
     def _parse_expression(self) -> NodeBase:
         '''
         Grammar[Expression]
         expression_binary;
         '''
-        return self._parse_expression_binary()
+        node = self._parse_expression_binary()
+        # -Rule: assignment
+        if self._consume(Token.Type.SymbolEq):
+            value = self._parse_expression()
+            node = NodeVarAssignment(node, value)
+        return node
 
     def _parse_expression_binary(self) -> NodeBase:
         '''
@@ -198,15 +226,16 @@ class Parser:
         self._buffer = None
         return token
 
-    def _consume(self, _type: Token.Type) -> bool:
+    def _consume(self, _type: Token.Type, error_on_fail: bool = True) -> bool:
         '''
         Checks if next token matches predicate and advances token stream
         position if success; Returns success or raises compiler error if end of stream
         '''
         # -TODO: Raise compiler error(Syntactical) if End of Stream
         token = self._peek()
-        assert token is not None
-        if token.type is not _type:
+        if error_on_fail:
+            assert token is not None
+        if token is None or token.type is not _type:
             return False
         self._advance()
         return True

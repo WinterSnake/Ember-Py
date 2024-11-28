@@ -41,6 +41,7 @@ WORD_LUT: dict[str, Token.Type] = {
     'if': Token.Type.KeywordIf,
     'else': Token.Type.KeywordElse,
     # -Types
+    'int32': Token.Type.TypeInt32,
 }
 
 

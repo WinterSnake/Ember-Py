@@ -1,7 +1,8 @@
 program: statements*;
-statement: conditional | (expression ';');
+statement: conditional | (declaration | expression) ';';
+declaration: 'int32' IDENTIFIER ('=' expression)?;
 conditional: if '(' expression ')' '{' statement* '}' ('else' '{' statement* '}')?;
-expression: expression_binary;
+expression: (IDENTIFIER '=')? expression_binary;
 expression_binary: primary (OPERATOR primary)*;
 primary: IDENTIFIER | NUMBER | '(' expression ')';
 

@@ -71,6 +71,7 @@ class Token:
         KeywordIf = auto()
         KeywordElse = auto()
         # -Keywords: Types
+        TypeInt32 = auto()
         # -Symbols
         SymbolLParen = auto()
         SymbolRParen = auto()
