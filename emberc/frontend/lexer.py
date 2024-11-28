@@ -40,6 +40,9 @@ WORD_LUT: dict[str, Token.Type] = {
     # -Keywords
     'if': Token.Type.KeywordIf,
     'else': Token.Type.KeywordElse,
+    'for': Token.Type.KeywordFor,
+    'while': Token.Type.KeywordWhile,
+    'do': Token.Type.KeywordDo,
     # -Types
     'int32': Token.Type.TypeInt32,
 }

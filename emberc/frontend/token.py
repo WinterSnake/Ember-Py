@@ -70,6 +70,9 @@ class Token:
         # -Keywords
         KeywordIf = auto()
         KeywordElse = auto()
+        KeywordFor = auto()
+        KeywordWhile = auto()
+        KeywordDo = auto()
         # -Keywords: Types
         TypeInt32 = auto()
         # -Symbols

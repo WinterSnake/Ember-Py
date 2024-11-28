@@ -1,5 +1,8 @@
 program: statements*;
-statement: conditional | (declaration | expression) ';';
+statement: conditional | loop_for | loop_while | loop_do | (declaration | expression) ';';
+loop_for: 'for' '(' (declaration | expression)? ';' expression? ';' expression? ')' '{' statement '}';
+loop_while: 'while' '(' expression ')' '{' statement* '}';
+loop_do: 'do' '{' statement* '}' 'while' '(' expression ')' ';';
 declaration: 'int32' IDENTIFIER ('=' expression)?;
 conditional: if '(' expression ')' '{' statement* '}' ('else' '{' statement* '}')?;
 expression: (IDENTIFIER '=')? expression_binary;

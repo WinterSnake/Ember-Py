@@ -11,12 +11,13 @@ from .base import NodeBase
 from .conditional import NodeConditional
 from .expression import NodeExpressionBinary
 from .literal import NodeLiteral
+from .loop import NodeLoop
 from .var import NodeVarAssignment, NodeVarDeclaration
 
 ## Constants
 __all__: tuple[str, ...] = (
     "NodeBase",
-    "NodeConditional",
+    "NodeConditional", "NodeLoop",
     "NodeVarAssignment", "NodeVarDeclaration",
     "NodeExpressionBinary", "NodeLiteral",
 )

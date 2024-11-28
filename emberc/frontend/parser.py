@@ -13,8 +13,7 @@ from typing import TYPE_CHECKING, Any
 
 from .token import OPERATOR_COUNT, Token
 from ..middleware.nodes import (
-    NodeBase,
-    NodeConditional,
+    NodeBase, NodeConditional, NodeLoop,
     NodeVarDeclaration, NodeVarAssignment,
     NodeExpressionBinary, NodeLiteral,
 )
@@ -59,6 +58,18 @@ def _build_node_expression_binary(
     return NodeExpressionBinary(operator[0], operator[1], operator[2], lhs, rhs)
 
 
+def _build_node_block(
+    nodes: list[NodeBase], node: NodeBase | tuple[NodeBase, ...]
+) -> None:
+    """
+    Either extends the nodes from the given node block or appends a single node to it
+    """
+    if isinstance(node, tuple):
+        nodes.extend(node)
+    else:
+        nodes.append(node)
+
+
 ## Classes
 class Parser:
     """
@@ -83,10 +94,10 @@ class Parser:
         '''
         statements: list[NodeBase] = []
         while self._peek():
-            statements.append(self._parse_statement())
+            _build_node_block(statements, self._parse_statement())
         return statements
 
-    def _parse_statement(self) -> NodeBase:
+    def _parse_statement(self) -> NodeBase | tuple[NodeBase, ...]:
         '''
         Grammar[Statement]
         conditional | (declaration | expression) ';';
@@ -94,9 +105,18 @@ class Parser:
         # -Rule: conditional
         if self._consume(Token.Type.KeywordIf):
             return self._parse_conditional()
+        # -Rule: loop-for
+        elif self._consume(Token.Type.KeywordFor):
+            return self._parse_loop_for()
+        # -Rule: loop-while
+        elif self._consume(Token.Type.KeywordWhile):
+            return self._parse_loop_while()
+        # -Rule: loop-do
+        elif self._consume(Token.Type.KeywordDo):
+            return self._parse_loop_do()
         node: NodeBase | None
         # -Rule: declaration
-        if (node := self._parse_declaration()) is None:
+        if not (node := self._parse_declaration()):
             # -Rule: expression
             node = self._parse_expression()
         self._expect(Token.Type.SymbolSemicolon)
@@ -110,24 +130,107 @@ class Parser:
         self._expect(Token.Type.SymbolLParen)
         condition = self._parse_expression()
         self._expect(Token.Type.SymbolRParen)
-        true_block: list[NodeBase] = []
         self._expect(Token.Type.SymbolLBracket)
+        true_block: list[NodeBase] = []
         while token := self._peek():
             if token.type is Token.Type.SymbolRBracket:
                 break
-            true_block.append(self._parse_statement())
+            _build_node_block(true_block, self._parse_statement())
         self._expect(Token.Type.SymbolRBracket)
         false_block: tuple[NodeBase, ...] | None = None
         if self._consume(Token.Type.KeywordElse, False):
-            block: list[NodeBase] = []
             self._expect(Token.Type.SymbolLBracket)
+            block: list[NodeBase] = []
             while token := self._peek():
                 if token.type is Token.Type.SymbolRBracket:
                     break
-                block.append(self._parse_statement())
+                _build_node_block(block, self._parse_statement())
             self._expect(Token.Type.SymbolRBracket)
             false_block = tuple(block)
         return NodeConditional(condition, tuple(true_block), false_block)
+
+    def _parse_loop_for(self) -> tuple[NodeBase, ...]:
+        '''
+        Grammar[Loop::For]
+        'for' '(' (declaration | expression)? ';' expression? ';' expression? ')' '{' statement '}';
+        '''
+        self._expect(Token.Type.SymbolLParen)
+        # -Initializer
+        initializer: NodeBase | None = None
+        if not self._consume(Token.Type.SymbolSemicolon):
+            if not (initializer := self._parse_declaration()):
+                initializer = self._parse_expression()
+            self._expect(Token.Type.SymbolSemicolon)
+        # -Condition
+        condition: NodeBase
+        cond_token = self._peek()
+        if not self._consume(Token.Type.SymbolSemicolon):
+            condition = self._parse_expression()
+            self._expect(Token.Type.SymbolSemicolon)
+        else:
+            assert cond_token is not None
+            condition = NodeLiteral(
+                cond_token.file, cond_token.position,
+                NodeLiteral.Type.Boolean, True
+            )
+        # -Increment
+        increment: NodeBase | None = None
+        if not self._consume(Token.Type.SymbolRParen):
+            increment = self._parse_expression()
+            self._expect(Token.Type.SymbolRParen)
+        # -Body
+        self._expect(Token.Type.SymbolLBracket)
+        body: list[NodeBase] = []
+        while token := self._peek():
+            if token.type is Token.Type.SymbolRBracket:
+                break
+            _build_node_block(body, self._parse_statement())
+        self._expect(Token.Type.SymbolRBracket)
+        # -De-sugared nodes
+        if increment:
+            body.append(increment)
+        loop = NodeLoop(condition, tuple(body), False)
+        if not initializer:
+            return(loop,)
+        else:
+            return (initializer, loop)
+
+
+    def _parse_loop_while(self) -> NodeBase:
+        '''
+        Grammar[Loop::While]
+        'while' '(' expression ')' '{' statement* '}';
+        '''
+        self._expect(Token.Type.SymbolLParen)
+        condition = self._parse_expression()
+        self._expect(Token.Type.SymbolRParen)
+        self._expect(Token.Type.SymbolLBracket)
+        body: list[NodeBase] = []
+        while token := self._peek():
+            if token.type is Token.Type.SymbolRBracket:
+                break
+            _build_node_block(body, self._parse_statement())
+        self._expect(Token.Type.SymbolRBracket)
+        return NodeLoop(condition, tuple(body), False)
+
+    def _parse_loop_do(self) -> NodeBase:
+        '''
+        Grammar[Loop::Do..While]
+        'do' '{' statement* '}' 'while' '(' expression ')' ';';
+        '''
+        self._expect(Token.Type.SymbolLBracket)
+        body: list[NodeBase] = []
+        while token := self._peek():
+            if token.type is Token.Type.SymbolRBracket:
+                break
+            _build_node_block(body, self._parse_statement())
+        self._expect(Token.Type.SymbolRBracket)
+        self._expect(Token.Type.KeywordWhile)
+        self._expect(Token.Type.SymbolLParen)
+        condition = self._parse_expression()
+        self._expect(Token.Type.SymbolRParen)
+        self._expect(Token.Type.SymbolSemicolon)
+        return NodeLoop(condition, tuple(body), True)
 
     def _parse_declaration(self) -> NodeBase | None:
         '''

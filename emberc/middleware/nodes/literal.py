@@ -24,11 +24,11 @@ class NodeLiteral(NodeContextBase):
     # -Constructor
     def __init__(
         self, file: Path, position: tuple[int, int, int],
-        _type: Type, value: int | str
+        _type: Type, value: bool | int | str
     ) -> None:
         super().__init__(file, position)
         self.type: NodeLiteral.Type = _type
-        self.value: int | str = value
+        self.value: bool | int | str = value
 
     # -Dunder Methods
     def __repr__(self) -> str:
@@ -39,7 +39,7 @@ class NodeLiteral(NodeContextBase):
         match self.type:
             case NodeLiteral.Type.Identifier:
                 return f"Symbol({self.value})"
-            case NodeLiteral.Type.Number:
+            case _:
                 return str(self.value)
 
     # -Sub-Classes
@@ -49,4 +49,5 @@ class NodeLiteral(NodeContextBase):
         - Represents the node's literal value
         '''
         Identifier = auto()
+        Boolean = auto()
         Number = auto()
