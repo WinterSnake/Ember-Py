@@ -13,7 +13,8 @@ from typing import TYPE_CHECKING, Any
 
 from .token import OPERATOR_COUNT, Token
 from ..middleware.nodes import (
-    NodeBase, NodeExpressionBinary, NodeLiteral,
+    NodeBase, NodeConditional,
+    NodeExpressionBinary, NodeLiteral,
 )
 
 if TYPE_CHECKING:
@@ -86,11 +87,40 @@ class Parser:
     def _parse_statement(self) -> NodeBase:
         '''
         Grammar[Statement]
-        expression ';';
+        conditional | (expression ';');
         '''
+        if self._consume(Token.Type.KeywordIf):
+            return self._parse_conditional()
         node = self._parse_expression()
         self._expect(Token.Type.SymbolSemicolon)
         return node
+
+    def _parse_conditional(self) -> NodeBase:
+        '''
+        Grammar[Conditional]
+        if '(' expression ')' '{' statement* '}' ('else' '{' statement* '}')?;
+        '''
+        self._expect(Token.Type.SymbolLParen)
+        condition = self._parse_expression()
+        self._expect(Token.Type.SymbolRParen)
+        true_block: list[NodeBase] = []
+        self._expect(Token.Type.SymbolLBracket)
+        while token := self._peek():
+            if token.type is Token.Type.SymbolRBracket:
+                break
+            true_block.append(self._parse_statement())
+        self._expect(Token.Type.SymbolRBracket)
+        false_block: tuple[NodeBase, ...] | None = None
+        if self._consume(Token.Type.KeywordElse):
+            block: list[NodeBase] = []
+            self._expect(Token.Type.SymbolLBracket)
+            while token := self._peek():
+                if token.type is Token.Type.SymbolRBracket:
+                    break
+                block.append(self._parse_statement())
+            self._expect(Token.Type.SymbolRBracket)
+            false_block = tuple(block)
+        return NodeConditional(condition, tuple(true_block), false_block)
 
     def _parse_expression(self) -> NodeBase:
         '''

@@ -14,6 +14,7 @@ from pathlib import Path
 ## Constants
 SYMBOL_COUNT: int
 OPERATOR_COUNT: int
+WORD_COUNT: int
 
 ## Classes
 class Token:
@@ -67,6 +68,8 @@ class Token:
         '''
 
         # -Keywords
+        KeywordIf = auto()
+        KeywordElse = auto()
         # -Keywords: Types
         # -Symbols
         SymbolLParen = auto()
@@ -95,3 +98,4 @@ class Token:
 ## Body
 SYMBOL_COUNT = Token.Type.Identifier - Token.Type.SymbolLParen
 OPERATOR_COUNT = Token.Type.Identifier - Token.Type.SymbolPlus
+WORD_COUNT = Token.Type.SymbolLParen - Token.Type.KeywordIf

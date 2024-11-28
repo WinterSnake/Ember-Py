@@ -11,11 +11,11 @@ from __future__ import annotations
 from enum import IntEnum, auto
 from pathlib import Path
 
-from .base import NodeBase
+from .base import NodeContextBase
 
 
 ## Classes
-class NodeLiteral(NodeBase):
+class NodeLiteral(NodeContextBase):
     """
     Ember Language AST Node: Literal
     - Node that represents a literal and it's associated value

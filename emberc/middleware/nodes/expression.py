@@ -11,11 +11,11 @@ from __future__ import annotations
 from enum import IntEnum, auto
 from pathlib import Path
 
-from .base import NodeBase
+from .base import NodeBase, NodeContextBase
 
 
 ## Classes
-class NodeExpressionBinary(NodeBase):
+class NodeExpressionBinary(NodeContextBase):
     """
     Ember Language AST Node: Expression Binary
     - Node that represents a binary expression and it's

@@ -18,6 +18,14 @@ class NodeBase(ABC):
     Ember Language AST Node: Base
     - Abstract node that all other AST nodes derive
     """
+    pass
+
+
+class NodeContextBase(NodeBase):
+    """
+    Ember Language AST Node: Base with Context
+    - Abstract node that other AST nodes derive that keep file/position context
+    """
 
     # -Constructor
     def __init__(self, file: Path, position: tuple[int, int, int]) -> None:

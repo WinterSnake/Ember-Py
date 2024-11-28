@@ -1,5 +1,6 @@
 program: statements*;
-statement: expression ';';
+statement: conditional | (expression ';');
+conditional: if '(' expression ')' '{' statement* '}' ('else' '{' statement* '}')?;
 expression: expression_binary;
 expression_binary: primary (OPERATOR primary)*;
 primary: IDENTIFIER | NUMBER | '(' expression ')';

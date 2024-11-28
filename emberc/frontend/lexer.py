@@ -11,7 +11,7 @@ from collections.abc import Generator
 from pathlib import Path
 from typing import TextIO
 
-from .token import SYMBOL_COUNT, Token
+from .token import SYMBOL_COUNT, WORD_COUNT, Token
 
 ## Constants
 Type_TokenGenerator = Generator[Token, None, None]
@@ -38,6 +38,8 @@ SYMBOL_LUT: dict[str, Token.Type] = {
 }
 WORD_LUT: dict[str, Token.Type] = {
     # -Keywords
+    'if': Token.Type.KeywordIf,
+    'else': Token.Type.KeywordElse,
     # -Types
 }
 
@@ -245,3 +247,4 @@ class Lexer:
 
 ## Body
 assert len(SYMBOL_LUT) == SYMBOL_COUNT, "Not all token symbols handled in Lexer.Symbol LUT"
+assert len(WORD_LUT) == WORD_COUNT, "Not all token symbols handled in Lexer.Word LUT"
