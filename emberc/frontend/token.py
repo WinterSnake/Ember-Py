@@ -11,6 +11,9 @@ from __future__ import annotations
 from enum import IntEnum, auto
 from pathlib import Path
 
+## Constants
+SYMBOL_COUNT: int
+OPERATOR_COUNT: int
 
 ## Classes
 class Token:
@@ -63,6 +66,8 @@ class Token:
         - Represents the symbol, keyword, or literal for the token
         '''
 
+        # -Keywords
+        # -Keywords: Types
         # -Symbols
         SymbolLParen = auto()
         SymbolRParen = auto()
@@ -70,6 +75,7 @@ class Token:
         SymbolRBracket = auto()
         SymbolColon = auto()
         SymbolSemicolon = auto()
+        # -Symbols: Operators
         SymbolPlus = auto()
         SymbolMinus = auto()
         SymbolAsterisk = auto()
@@ -78,3 +84,8 @@ class Token:
         # -Literals
         Identifier = auto()
         Number = auto()
+
+
+## Body
+SYMBOL_COUNT = Token.Type.Identifier - Token.Type.SymbolLParen
+OPERATOR_COUNT = Token.Type.Identifier - Token.Type.SymbolPlus

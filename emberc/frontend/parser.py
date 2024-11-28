@@ -6,70 +6,49 @@
 ## Parser                        ##
 ##-------------------------------##
 
-## Import
+## Imports
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
-from .token import Token
+from .token import OPERATOR_COUNT, Token
 from ..middleware.nodes import (
-    NodeBase, NodeExpressionBinary, NodeLiteral
+    NodeBase, NodeExpressionBinary, NodeLiteral,
 )
 
 if TYPE_CHECKING:
-    from .lexer import TOKEN_GENERATOR
+    from .lexer import Type_TokenGenerator
+
+## Constants
+Type_OperatorStack = list[tuple[
+    Path,
+    tuple[int, int, int],
+    NodeExpressionBinary.Type,
+    int
+]]
+LITERALS: tuple[Token.Type, ...] = (
+    Token.Type.Identifier, Token.Type.Number,
+)
+OPERATOR_LUT: dict[Token.Type, tuple[NodeExpressionBinary.Type, int]] = {
+    Token.Type.SymbolPlus: (NodeExpressionBinary.Type.Add, 1),
+    Token.Type.SymbolMinus: (NodeExpressionBinary.Type.Sub, 1),
+    Token.Type.SymbolAsterisk: (NodeExpressionBinary.Type.Mul, 2),
+    Token.Type.SymbolFSlash: (NodeExpressionBinary.Type.Div, 2),
+    Token.Type.SymbolPercent: (NodeExpressionBinary.Type.Mod, 2),
+}
 
 
-## Functions
-def _get_operator_type(_type: Token.Type) -> NodeExpressionBinary.Type:
-    """
-    Matches the token type to a mapped expression operator
-    """
-    match _type:
-        case Token.Type.SymbolPlus:
-            return NodeExpressionBinary.Type.Add
-        case Token.Type.SymbolMinus:
-            return NodeExpressionBinary.Type.Sub
-        case Token.Type.SymbolAsterisk:
-            return NodeExpressionBinary.Type.Mul
-        case Token.Type.SymbolFSlash:
-            return NodeExpressionBinary.Type.Div
-        case Token.Type.SymbolPercent:
-            return NodeExpressionBinary.Type.Mod
-    raise TypeError(f"Unhandled get_operator type '{_type.name}'")
-
-
-def _get_operator_precedence(_type: NodeExpressionBinary.Type) -> int:
-    """
-    Matches the expression operator to it's precedence value.
-    """
-    match _type:
-        case NodeExpressionBinary.Type.Add:
-            return 1
-        case NodeExpressionBinary.Type.Sub:
-            return 1
-        case NodeExpressionBinary.Type.Mul:
-            return 2
-        case NodeExpressionBinary.Type.Div:
-            return 2
-        case NodeExpressionBinary.Type.Mod:
-            return 2
-    raise TypeError(f"Unhandled get_precedence type '{_type.name}'")
-
-
-def _build_expression_node(
-    nodes: list[NodeBase], operators: list[Token]
+## Function
+def _build_node_expression_binary(
+    nodes: list[NodeBase], operators: Type_OperatorStack
 ) -> NodeExpressionBinary:
     """
-    Builds an ExpressionBinary node by popping elements off the nodes stack
-    and the operator from the operator stack and returns the constructed node
+    Builds and returns a NodeExpressionBinary from a node stack and an operator stack
     """
     rhs = nodes.pop()
     lhs = nodes.pop()
-    op_token = operators.pop()
-    op = _get_operator_type(op_token.type)
-    return NodeExpressionBinary(
-        op_token.file, op_token.position, op, lhs, rhs
-    )
+    operator = operators.pop()
+    return NodeExpressionBinary(operator[0], operator[1], operator[2], lhs, rhs)
 
 
 ## Classes
@@ -79,21 +58,13 @@ class Parser:
     [Lookahead(1)]
     - Every internal parse function represents a grammar rule
     in the language and handles returning a node from the given rule
-    Hybrid recursive-descent + shunting yard algorithim for parsing
-    expressions
+    Hybrid recursive-descent + shunting yard algorithim for parsing expressions
     """
 
     # -Constructor
-    def __init__(self, tokens: TOKEN_GENERATOR) -> None:
-        self._tokens_generator: TOKEN_GENERATOR = tokens
+    def __init__(self, token_generator: Type_TokenGenerator) -> None:
+        self._token_generator: Type_TokenGenerator = token_generator
         self._buffer: Token | None = None
-
-    # -Dunder Methods
-    def __repr__(self) -> str:
-        return f"Parser(tokens={repr(self._tokens_generator)})"
-
-    def __str__(self) -> str:
-        return "Parser()"
 
     # -Instance Methods
     # --Parsing
@@ -104,8 +75,7 @@ class Parser:
         '''
         statements: list[NodeBase] = []
         while self._peek():
-            statement = self._parse_statement()
-            statements.append(statement)
+            statements.append(self._parse_statement())
         return statements
 
     def _parse_statement(self) -> NodeBase:
@@ -113,106 +83,137 @@ class Parser:
         Grammar[Statement]
         expression ';';
         '''
-        expression = self._parse_expression()
-        self._consume(Token.Type.SymbolSemicolon)
-        return expression
+        node = self._parse_expression()
+        self._expect(Token.Type.SymbolSemicolon)
+        return node
 
     def _parse_expression(self) -> NodeBase:
         '''
         Grammar[Expression]
-        primary | primary ('+' | '-' | '*' | '/' | '%') primary;
+        expression_binary;
         '''
-        # -Rule: primary
-        lhs: NodeBase = self._parse_primary()
-        node_stack: list[NodeBase] = [lhs]
-        operator_stack: list[Token] = []
-        # -Rule: primary operator primary
-        # --Add operators to stack
-        while self._match(
-            Token.Type.SymbolPlus, Token.Type.SymbolMinus,
-            Token.Type.SymbolAsterisk, Token.Type.SymbolFSlash,
-            Token.Type.SymbolPercent
-        ):
+        return self._parse_expression_binary()
+
+    def _parse_expression_binary(self) -> NodeBase:
+        '''
+        Grammar[Expression::Binary]
+        primary ( ('+' | '-' | '*' | '/' | '%') primary)*;
+        '''
+        node_stack: list[NodeBase] = [self._parse_primary()]
+        operator_stack: Type_OperatorStack = []
+        # -Rule: <operator> primary
+        while self._matches(*OPERATOR_LUT.keys()):
             operator_token = self._next()
-            assert operator_token is not None
-            operator = _get_operator_type(operator_token.type)
-            precedence = _get_operator_precedence(operator)
-            # --Clear higher precedence operators
-            while (
-                operator_stack and
-                precedence <= _get_operator_precedence(
-                    _get_operator_type(operator_stack[-1].type)
-                )
-            ):
-                node = _build_expression_node(node_stack, operator_stack)
+            operator = OPERATOR_LUT[operator_token.type]
+            # -Handle precedence
+            while operator_stack and operator[1] <= operator_stack[-1][3]:
+                node = _build_node_expression_binary(node_stack, operator_stack)
                 node_stack.append(node)
-            rhs = self._parse_primary()
-            node_stack.append(rhs)
-            operator_stack.append(operator_token)
-        # --Clear operator stack
+            node_stack.append(self._parse_primary())
+            operator_stack.append((
+                operator_token.file, operator_token.position, *operator
+            ))
+        # -Flush operator stack
         while operator_stack:
-            node = _build_expression_node(node_stack, operator_stack)
+            node = _build_node_expression_binary(node_stack, operator_stack)
             node_stack.append(node)
-        assert len(node_stack) == 1 and len(operator_stack) == 0
+        assert len(node_stack) == 1
         return node_stack.pop()
+
 
     def _parse_primary(self) -> NodeBase:
         '''
         Grammar[Primary]
-        LITERAL | '(' expression ')';
+        IDENTIFIER | NUMBER | '(' expression ')';
         '''
         node: NodeBase
-        primary = self._next()
-        assert primary is not None
         # -Rule: ( expression )
-        if primary.type is Token.Type.SymbolLParen:
+        if self._consume(Token.Type.SymbolLParen):
             node = self._parse_expression()
-            self._consume(Token.Type.SymbolRParen)
-        # -Terminal: LITERAL
-        elif primary.type is Token.Type.Number:
-            assert primary.value is not None
-            node = NodeLiteral(
-                primary.file, primary.position,
-                NodeLiteral.Type.Number, int(primary.value)
-            )
-        assert node is not None
+            self._expect(Token.Type.SymbolRParen)
+        # -Rule: Literal
+        else:
+            literal = self._next()
+            assert (literal.type in LITERALS and
+                    literal.value is not None)
+            _type: NodeLiteral.Type
+            value: Any
+            match literal.type:
+                case Token.Type.Identifier:
+                    _type = NodeLiteral.Type.Identifier
+                    value = literal.value
+                case Token.Type.Number:
+                    _type = NodeLiteral.Type.Number
+                    value = int(literal.value)
+                case _:
+                    # -TODO: Raise compiler error(syntactical) invalid primary parse
+                    pass
+            node = NodeLiteral(literal.file, literal.position, _type, value)
         return node
 
     # --Control
-    def _consume(self, _type: Token.Type) -> None:
+    def _advance(self) -> Token | None:
         '''
-        Consumes the token based on the expected token type given
-        and returns a parsing error if unable (TODO)
-        '''
-        token = self._next()
-        if token is None:
-            print("Invalid consume")
-        elif token.type is not _type:
-            print("Invalid consume")
-
-    def _match(self, *types: Token.Type) -> bool:
-        '''
-        Returns if the next token in the input matches the given types
-        '''
-        token = self._peek()
-        if token is not None and token.type in types:
-            return True
-        return False
-
-    def _next(self) -> Token | None:
-        '''
-        Returns next token from the token stream
+        Increment token stream to next position or pops the buffered
+        tokens if applicable; Returns found token or None if end of stream
         '''
         if self._buffer is None:
-            return next(self._tokens_generator, None)
+            return next(self._token_generator, None)
         token = self._buffer
         self._buffer = None
         return token
 
+    def _consume(self, _type: Token.Type) -> bool:
+        '''
+        Checks if next token matches predicate and advances token stream
+        position if success; Returns success or raises compiler error if end of stream
+        '''
+        # -TODO: Raise compiler error(Syntactical) if End of Stream
+        token = self._peek()
+        assert token is not None
+        if token.type is not _type:
+            return False
+        self._advance()
+        return True
+
+    def _expect(self, _type: Token.Type) -> None:
+        '''
+        Advances token stream and matches token to predicate
+        Raises compiler error if type mismatch or end of stream
+        '''
+        # -TODO: Raise compiler error(Syntactical) if type mismatch or End of Stream
+        token = self._advance()
+        assert token is not None and token.type is _type
+
+    def _matches(self, *types: Token.Type) -> bool:
+        '''
+        Checks if next token matches predicate
+        without advancing; Returns success
+        '''
+        token = self._peek()
+        if token is None or token.type not in types:
+            return False
+        return True
+
+    def _next(self) -> Token:
+        '''
+        Gets next token in token stream and returns it
+        or raises compiler error if end of stream
+        '''
+        # -TODO: Raise compiler error(Syntactical) if end of stream
+        token = self._advance()
+        assert token is not None
+        return token
+
     def _peek(self) -> Token | None:
         '''
-        Returns next token from token stream and stores in internal buffer
+        Gets next token in stream and buffers it
+        Returns found token or None if end of stream
         '''
-        if self._buffer is None:
-            self._buffer = next(self._tokens_generator, None)
+        if not self._buffer:
+            self._buffer = next(self._token_generator, None)
         return self._buffer
+
+
+## Body
+assert len(OPERATOR_LUT) == OPERATOR_COUNT, "Not all token symbols handled in Parser.Operator LUT"

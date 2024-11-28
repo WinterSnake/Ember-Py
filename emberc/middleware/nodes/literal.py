@@ -3,7 +3,7 @@
 ## Ember Compiler: Middleware    ##
 ## Written By: Ryan Smith        ##
 ##-------------------------------##
-## Node: Base                    ##
+## Node: Literal                 ##
 ##-------------------------------##
 
 ## Imports
@@ -24,11 +24,11 @@ class NodeLiteral(NodeBase):
     # -Constructor
     def __init__(
         self, file: Path, position: tuple[int, int, int],
-        _type: Type, value: int
+        _type: Type, value: int | str
     ) -> None:
         super().__init__(file, position)
         self.type: NodeLiteral.Type = _type
-        self.value: int = value
+        self.value: int | str = value
 
     # -Dunder Methods
     def __repr__(self) -> str:
@@ -36,7 +36,11 @@ class NodeLiteral(NodeBase):
                 f"type={self.type.name}, value={self.value})")
 
     def __str__(self) -> str:
-        return str(self.value)
+        match self.type:
+            case NodeLiteral.Type.Identifier:
+                return f"Symbol({self.value})"
+            case NodeLiteral.Type.Number:
+                return str(self.value)
 
     # -Sub-Classes
     class Type(IntEnum):
@@ -44,4 +48,5 @@ class NodeLiteral(NodeBase):
         Ember Literal Type
         - Represents the node's literal value
         '''
+        Identifier = auto()
         Number = auto()

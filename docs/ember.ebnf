@@ -1,4 +1,5 @@
 program: statements*;
-statement: expression ';'
-expression: primary | primary ('+' | '-' | '*' | '/' | '%') primary;
-primary: LITERAL | '(' expression ')';
+statement: expression ';';
+expression: expression_binary;
+expression_binary: primary ( ('+' | '-' | '*' | '/' | '%') primary)*;
+primary: IDENTIFIER | NUMBER | '(' expression ')';

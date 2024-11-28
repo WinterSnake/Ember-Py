@@ -3,7 +3,7 @@
 ## Ember Compiler: Middleware    ##
 ## Written By: Ryan Smith        ##
 ##-------------------------------##
-## Node: Base                    ##
+## Node: Expression              ##
 ##-------------------------------##
 
 ## Imports
@@ -34,9 +34,8 @@ class NodeExpressionBinary(NodeBase):
 
     # -Dunder Methods
     def __repr__(self) -> str:
-        return (f"NodeExpressionBinary({super().__repr__()}, "
-                f"type={self.type.name}, lhs={repr(self.lhs)}, "
-                f"rhs={repr(self.rhs)})")
+        return (f"NodeExpressionBinary({super().__repr__()}, type="
+                f"{self.type.name}, lhs={{{self.lhs!r}}}, rhs={{{self.rhs!r})}}")
 
     def __str__(self) -> str:
         symbol: str = ''
@@ -52,7 +51,7 @@ class NodeExpressionBinary(NodeBase):
             case NodeExpressionBinary.Type.Mod:
                 symbol = '%'
             case _:
-                raise TypeError(f"Unhandled type '{self.type.name}'")
+                raise NotImplementedError(f"Unhandled type '{self.type.name}'")
         return f"({self.lhs} {symbol} {self.rhs})"
 
     # -Sub-Classes

@@ -11,59 +11,29 @@ from collections.abc import Generator
 from pathlib import Path
 from typing import TextIO
 
-from .token import Token
+from .token import SYMBOL_COUNT, Token
 
 ## Constants
-TOKEN_GENERATOR = Generator[Token, None, None]
-SYMBOLS: tuple[str, ...] = (
-    '(', ')', '{', '}', ':', ';',
-    '+', '-', '*', '/', '%',
-)
-
-
-## Functions
-def _get_symbol_type(buffer: str) -> Token.Type | None:
-    """
-    Matches the buffer string to a mapped symbol and returns
-    the associated token type if applicable or returns None
-    """
-    match buffer:
-        # -Single length symbols
-        case '(':
-            return Token.Type.SymbolLParen
-        case ')':
-            return Token.Type.SymbolRParen
-        case '{':
-            return Token.Type.SymbolLBracket
-        case '}':
-            return Token.Type.SymbolRBracket
-        case ':':
-            return Token.Type.SymbolColon
-        case ';':
-            return Token.Type.SymbolSemicolon
-        case '+':
-            return Token.Type.SymbolPlus
-        case '-':
-            return Token.Type.SymbolMinus
-        case '*':
-            return Token.Type.SymbolAsterisk
-        case '/':
-            return Token.Type.SymbolFSlash
-        case '%':
-            return Token.Type.SymbolPercent
-    return None
-
-
-def _get_word_type(buffer: str) -> Token.Type:
-    """
-    Matches the buffer string to a mapped keyword and returns
-    the associated token type if applicable or returns Identifier type
-    """
-    raise NotImplementedError("_get_word_type() not supported")
-    return {
-        # -Keywords
-        # -Builtin Types
-    }.get(buffer, Token.Type.Identifier)
+Type_TokenGenerator = Generator[Token, None, None]
+SYMBOL_LUT: dict[str, Token.Type] = {
+    # -Single-Char
+    '(': Token.Type.SymbolLParen,
+    ')': Token.Type.SymbolRParen,
+    '{': Token.Type.SymbolLBracket,
+    '}': Token.Type.SymbolRBracket,
+    ':': Token.Type.SymbolColon,
+    ';': Token.Type.SymbolSemicolon,
+    '+': Token.Type.SymbolPlus,
+    '-': Token.Type.SymbolMinus,
+    '*': Token.Type.SymbolAsterisk,
+    '/': Token.Type.SymbolFSlash,
+    '%': Token.Type.SymbolPercent,
+    # -Multi-Char
+}
+WORD_LUT: dict[str, Token.Type] = {
+    # -Keywords
+    # -Types
+}
 
 
 ## Classes
@@ -80,13 +50,16 @@ class Lexer:
     def __init__(self, file: Path | str) -> None:
         if isinstance(file, str):
             file = Path(file)
+        # -Input data
         self.file: Path = file
         self.row: int = 1
         self.column: int = 0
         self.offset: int = 0
         self._fp: TextIO | None = None
-        self._buffer: str = ""
+        # -Token data
+        self._type: Token.Type | None = None
         self._token_position: tuple[int, int, int] | None = None
+        self._buffer: str = ""
 
     # -Dunder Methods
     def __repr__(self) -> str:
@@ -97,7 +70,7 @@ class Lexer:
 
     # -Instance Methods
     # --Lexing
-    def lex(self) -> TOKEN_GENERATOR:
+    def lex(self) -> Type_TokenGenerator:
         '''
         Returns a generator to get each token from the input file
         Calls internal lexing functions to change states
@@ -105,17 +78,18 @@ class Lexer:
         token: Token | None = None
         self._fp = self.file.open('r')
         # -State[Default]
-        while c := self._next():
+        while c := self._advance():
             # -Char[Whitespace]
             if c.isspace():
                 continue
             # -Char[Number]
-            elif c.isdigit():
+            if c.isdigit():
                 self._buffer = c
                 token = self._lex_number()
             # -Char[Symbol]
-            elif c in SYMBOLS:
-                token = self._lex_symbol(c)
+            elif c in SYMBOL_LUT.keys():
+                self._buffer = c
+                token = self._lex_symbol()
             # -Char[Word]
             elif c.isalpha() or c == '_':
                 self._buffer = c
@@ -129,7 +103,9 @@ class Lexer:
         '''
         State[Number] lexs a valid number literal token
         '''
-        self._token_position = self.position
+        self._type = Token.Type.Number
+        if not self._token_position:
+            self._token_position = self.position
         # -State[Number]
         while c := self._peek():
             # -Char[Whitespace]
@@ -137,22 +113,21 @@ class Lexer:
                 break
             # -Char[Number]
             elif c.isdigit():
-                c = self._next()
-                assert c is not None
-                self._buffer += c
+                self._buffer += self._next()
             # -Char[Symbol]
-            elif c in SYMBOLS:
+            elif c in SYMBOL_LUT.keys():
                 break
             # -Char[Word]
             elif c.isalpha():
                 break
-        return self._create_token(Token.Type.Number)
+        return self._build_token()
 
-    def _lex_symbol(self, buffer: str) -> Token:
+    def _lex_symbol(self) -> Token:
         '''
         State[Symbol] lexs a valid symbol token
         '''
-        self._token_position = self.position
+        if not self._token_position:
+            self._token_position = self.position
         # -State[Symbol]
         while c := self._peek():
             # -Char[Whitespace]
@@ -162,59 +137,60 @@ class Lexer:
             elif c.isdigit():
                 break
             # -Char[Symbol]
-            elif c in SYMBOLS:
-                if _get_symbol_type(buffer + c):
-                    c = self._next()
-                    assert c is not None
-                    buffer += c
+            elif c in SYMBOL_LUT.keys():
+                if SYMBOL_LUT.get(self._buffer + c, None):
+                    self._buffer += self._next()
                 else:
                     break
             # -Char[Word]
             elif c.isalpha():
                 break
-        symbol_type = _get_symbol_type(buffer)
-        assert symbol_type is not None
-        return self._create_token(symbol_type)
+        self._type = SYMBOL_LUT.get(self._buffer)
+        self._buffer = ""
+        return self._build_token()
 
     def _lex_word(self) -> Token:
         '''
         State[Word] lexs a valid word token
         - Handles keywords and identifiers
         '''
-        self._token_position = self.position
+        if not self._token_position:
+            self._token_position = self.position
         while c := self._peek():
             # -Char[Whitespace]
             if c.isspace():
                 break
             # -Char[Symbol]
-            elif c in SYMBOLS:
+            elif c in SYMBOL_LUT.keys():
                 break
             # -Char[Number|Word]
             elif c.isalnum() or c == '_':
-                c = self._next()
-                assert c is not None
-                self._buffer += c
-        word_type = _get_word_type(self._buffer)
-        if word_type is not Token.Type.Identifier:
+                self._buffer += self._next()
+        self._type = WORD_LUT.get(self._buffer, Token.Type.Identifier)
+        if self._type is not Token.Type.Identifier:
             self._buffer = ""
-        return self._create_token(word_type)
+        return self._build_token()
 
     # --Control
-    def _create_token(self, _type: Token.Type) -> Token:
+    def _build_token(self) -> Token:
         '''
-        Internal token creation to create a valid token
-        and reset lexer token state
+        Builds and returns a Token from the lexer's
+        internal state then resets internal token data
         '''
-        assert self._token_position is not None
-        value = None if self._buffer == "" else self._buffer
-        token = Token(self.file, self._token_position, _type, value)
-        self._buffer = ""
+        assert self._type is not None and self._token_position is not None
+        token = Token(
+            self.file, self._token_position, self._type,
+            self._buffer if self._buffer else None
+        )
+        self._type = None
         self._token_position = None
+        self._buffer = ""
         return token
 
-    def _next(self) -> str | None:
+    def _advance(self) -> str | None:
         '''
-        Returns next character in file and increments lexer position
+        Increments file stream to next position and increments lexer's
+        internal state; Returns read char or None if end of stream
         '''
         assert self._fp is not None
         if self._fp.closed:
@@ -230,9 +206,20 @@ class Lexer:
         self.offset += 1
         return char
 
+    def _next(self) -> str:
+        '''
+        Gets next char in file stream and returns it
+        or raises compiler error if end of stream
+        '''
+        # -TODO: Raise compiler error(lexical) if end of stream
+        value = self._advance()
+        assert value is not None
+        return value
+
     def _peek(self) -> str | None:
         '''
-        Gets next character without advancing the file position
+        Gets next char in file stream without incrementing position
+        Returns read char or None if end of stream
         '''
         assert self._fp is not None
         if self._fp.closed:
@@ -248,3 +235,7 @@ class Lexer:
     @property
     def position(self) -> tuple[int, int, int]:
         return (self.row, self.column, self.offset)
+
+
+## Body
+assert len(SYMBOL_LUT) == SYMBOL_COUNT, "Not all token symbols handled in Lexer.Symbol LUT"
