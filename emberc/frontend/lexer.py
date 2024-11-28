@@ -23,12 +23,18 @@ SYMBOL_LUT: dict[str, Token.Type] = {
     '}': Token.Type.SymbolRBracket,
     ':': Token.Type.SymbolColon,
     ';': Token.Type.SymbolSemicolon,
+    '=': Token.Type.SymbolEq,
     '+': Token.Type.SymbolPlus,
     '-': Token.Type.SymbolMinus,
     '*': Token.Type.SymbolAsterisk,
     '/': Token.Type.SymbolFSlash,
     '%': Token.Type.SymbolPercent,
+    '<': Token.Type.SymbolLt,
+    '>': Token.Type.SymbolGt,
     # -Multi-Char
+    '<=': Token.Type.SymbolLtEq,
+    '>=': Token.Type.SymbolGtEq,
+    '==': Token.Type.SymbolEqEq,
 }
 WORD_LUT: dict[str, Token.Type] = {
     # -Keywords

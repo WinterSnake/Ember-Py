@@ -50,6 +50,16 @@ class NodeExpressionBinary(NodeBase):
                 symbol = '/'
             case NodeExpressionBinary.Type.Mod:
                 symbol = '%'
+            case NodeExpressionBinary.Type.Lt:
+                symbol = '<'
+            case NodeExpressionBinary.Type.Gt:
+                symbol = '>'
+            case NodeExpressionBinary.Type.LtEq:
+                symbol = '<='
+            case NodeExpressionBinary.Type.GtEq:
+                symbol = '>='
+            case NodeExpressionBinary.Type.EqEq:
+                symbol = '=='
             case _:
                 raise NotImplementedError(f"Unhandled type '{self.type.name}'")
         return f"({self.lhs} {symbol} {self.rhs})"
@@ -65,3 +75,8 @@ class NodeExpressionBinary(NodeBase):
         Mul = auto()
         Div = auto()
         Mod = auto()
+        Lt = auto()
+        Gt = auto()
+        LtEq = auto()
+        GtEq = auto()
+        EqEq = auto()

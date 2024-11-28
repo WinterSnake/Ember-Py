@@ -35,6 +35,11 @@ OPERATOR_LUT: dict[Token.Type, tuple[NodeExpressionBinary.Type, int]] = {
     Token.Type.SymbolAsterisk: (NodeExpressionBinary.Type.Mul, 2),
     Token.Type.SymbolFSlash: (NodeExpressionBinary.Type.Div, 2),
     Token.Type.SymbolPercent: (NodeExpressionBinary.Type.Mod, 2),
+    Token.Type.SymbolLt: (NodeExpressionBinary.Type.Lt, 3),
+    Token.Type.SymbolGt: (NodeExpressionBinary.Type.Gt, 3),
+    Token.Type.SymbolLtEq: (NodeExpressionBinary.Type.LtEq, 3),
+    Token.Type.SymbolGtEq: (NodeExpressionBinary.Type.GtEq, 3),
+    Token.Type.SymbolEqEq: (NodeExpressionBinary.Type.EqEq, 4),
 }
 
 

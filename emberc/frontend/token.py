@@ -76,11 +76,17 @@ class Token:
         SymbolColon = auto()
         SymbolSemicolon = auto()
         # -Symbols: Operators
+        SymbolEq = auto()
         SymbolPlus = auto()
         SymbolMinus = auto()
         SymbolAsterisk = auto()
         SymbolFSlash = auto()
         SymbolPercent = auto()
+        SymbolEqEq = auto()
+        SymbolLt = auto()
+        SymbolGt = auto()
+        SymbolLtEq = auto()
+        SymbolGtEq = auto()
         # -Literals
         Identifier = auto()
         Number = auto()

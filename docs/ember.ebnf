@@ -1,5 +1,7 @@
 program: statements*;
 statement: expression ';';
 expression: expression_binary;
-expression_binary: primary ( ('+' | '-' | '*' | '/' | '%') primary)*;
+expression_binary: primary (OPERATOR primary)*;
 primary: IDENTIFIER | NUMBER | '(' expression ')';
+
+OPERATOR: '+' | '-' | '*' | '/' | '%' | '<' | '>' | '<=' | '>=' | '==';
