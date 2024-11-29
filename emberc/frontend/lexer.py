@@ -23,6 +23,7 @@ SYMBOL_LUT: dict[str, Token.Type] = {
     '}': Token.Type.SymbolRBracket,
     ':': Token.Type.SymbolColon,
     ';': Token.Type.SymbolSemicolon,
+    ',': Token.Type.SymbolComma,
     '=': Token.Type.SymbolEq,
     '!': Token.Type.SymbolBang,
     '+': Token.Type.SymbolPlus,
@@ -45,7 +46,10 @@ WORD_LUT: dict[str, Token.Type] = {
     'for': Token.Type.KeywordFor,
     'while': Token.Type.KeywordWhile,
     'do': Token.Type.KeywordDo,
+    'fn': Token.Type.KeywordFunction,
+    'return': Token.Type.KeywordReturn,
     # -Types
+    'void': Token.Type.TypeVoid,
     'int32': Token.Type.TypeInt32,
 }
 

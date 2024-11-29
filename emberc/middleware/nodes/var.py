@@ -32,7 +32,7 @@ class NodeVarDeclaration(NodeContextBase):
     # -Dunder Methods
     def __repr__(self) -> str:
         return (f"NodeVarDeclaration({super().__repr__()}, "
-                f"id={self.id}, initializer={self.initializer!r}")
+                f"id={self.id}, initializer={self.initializer!r})")
 
     def __str__(self) -> str:
         return (f"Symbol({self.id}) = " +

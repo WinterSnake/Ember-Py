@@ -112,6 +112,8 @@ class NodeExpressionUnary(NodeContextBase):
                 symbol = '!'
             case NodeExpressionUnary.Type.Negate:
                 symbol = '-'
+            case NodeExpressionUnary.Type.Return:
+                symbol = "return"
             case _:
                 raise NotImplementedError(f"Unhandled type '{self.type.name}'")
         return f"({symbol}({self.node}))"
@@ -124,3 +126,4 @@ class NodeExpressionUnary(NodeContextBase):
         '''
         Not = auto()
         Negate = auto()
+        Return = auto()

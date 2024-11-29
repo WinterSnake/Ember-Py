@@ -73,7 +73,10 @@ class Token:
         KeywordFor = auto()
         KeywordWhile = auto()
         KeywordDo = auto()
+        KeywordFunction = auto()
+        KeywordReturn = auto()
         # -Keywords: Types
+        TypeVoid = auto()
         TypeInt32 = auto()
         # -Symbols
         SymbolLParen = auto()
@@ -82,6 +85,7 @@ class Token:
         SymbolRBracket = auto()
         SymbolColon = auto()
         SymbolSemicolon = auto()
+        SymbolComma = auto()
         # -Symbols: Operators
         SymbolEq = auto()
         SymbolBang = auto()

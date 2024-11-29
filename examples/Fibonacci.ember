@@ -1,0 +1,19 @@
+fn fibonacci(int32 n) : int32
+{
+	int32 prev = 0;
+	int32 curr = 1;
+	
+	for (int32 i = 1; i < n; i = i + 1)
+	{
+		int32 num = prev + curr;
+		prev = curr;
+		curr = num;
+	}
+
+	return curr;
+}
+
+fn __start__() : void
+{
+	int32 i = fibonacci(11);
+}

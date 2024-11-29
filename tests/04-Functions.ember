@@ -1,0 +1,19 @@
+fn other(int32 b) : int32
+{
+	for (int32 b = 0; b < 32; b = b + 1)
+	{
+		b;
+	}
+	return b - 10;
+}
+
+fn __start__(): void
+{
+	int32 a = 35;
+	int32 b = 34;
+	int32 c = a + b;
+	int32 d;
+	d = 420;
+	if (c > d) a; else b;
+	other(d, 10 + 9);
+}

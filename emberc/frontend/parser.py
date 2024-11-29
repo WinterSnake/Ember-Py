@@ -13,8 +13,9 @@ from typing import TYPE_CHECKING, Any
 
 from .token import OPERATOR_COUNT, Token
 from ..middleware.nodes import (
-    NodeBase, NodeStatementBlock, NodeConditional,
-    NodeLoop, NodeVarDeclaration, NodeVarAssignment,
+    NodeBase, NodeStatementBlock, NodeConditional, NodeLoop,
+    NodeFunctionDeclaration, NodeFunctionCall,
+    NodeVarDeclaration, NodeVarAssignment,
     NodeExpressionBinary, NodeExpressionUnary, NodeLiteral,
 )
 
@@ -48,6 +49,7 @@ OPERATOR_BINARY_LUT: dict[Token.Type, tuple[NodeExpressionBinary.Type, int]] = {
     Token.Type.SymbolEqEq: (NodeExpressionBinary.Type.EqEq, 4),
     Token.Type.SymbolBangEq: (NodeExpressionBinary.Type.BangEq, 4),
 }
+TYPES: tuple[Token.Type, ...] = (Token.Type.TypeVoid, Token.Type.TypeInt32)
 
 
 ## Function
@@ -93,7 +95,7 @@ class Parser:
     def _parse_statement(self) -> NodeBase:
         '''
         Grammar[Statement]
-        conditional | loop | `{` statement* `}` | (declaration | expression) `;`;
+        conditional | loop | `{` statement* `}` | declaration | `return`? expression `;`;
         '''
         # -Rule: conditional
         if self._consume(Token.Type.KeywordIf):
@@ -109,19 +111,23 @@ class Parser:
             return self._parse_loop_do()
         # -Rule: block
         elif self._consume(Token.Type.SymbolLBracket):
-            nodes: list[NodeBase] = []
-            while token := self._peek():
-                if token.type is Token.Type.SymbolRBracket:
-                    break
-                nodes.append(self._parse_statement())
-            self._expect(Token.Type.SymbolRBracket)
-            return NodeStatementBlock(tuple(nodes))
-        node: NodeBase | None
+            return self._parse_statement_block()
         # -Rule: declaration
-        if not (node := self._parse_declaration()):
-            # -Rule: expression
-            node = self._parse_expression()
+        elif node := self._parse_declaration():
+            return node
+        return_token: Token | None = None
+        # -Rule: return
+        if self._matches(Token.Type.KeywordReturn):
+            return_token = self._next()
+        # -Rule: expression
+        node = self._parse_expression()
         self._expect(Token.Type.SymbolSemicolon)
+        # -Rule: return(finialize)
+        if return_token:
+            node = NodeExpressionUnary(
+                return_token.file, return_token.position,
+                NodeExpressionUnary.Type.Return, node
+            )
         return node
 
     def _parse_conditional(self) -> NodeBase:
@@ -149,7 +155,7 @@ class Parser:
         if not self._consume(Token.Type.SymbolSemicolon):
             if not (initializer := self._parse_declaration()):
                 initializer = self._parse_expression()
-            self._expect(Token.Type.SymbolSemicolon)
+                self._expect(Token.Type.SymbolSemicolon)
         # -Condition
         condition: NodeBase
         cond_token = self._peek()
@@ -176,7 +182,6 @@ class Parser:
         return NodeStatementBlock(
             (initializer, loop) if initializer else (loop,)
         )
-
 
     def _parse_loop_while(self) -> NodeBase:
         '''
@@ -205,9 +210,58 @@ class Parser:
     def _parse_declaration(self) -> NodeBase | None:
         '''
         Grammar[Declaration]
-        `int32` IDENTIFIER (`=` expression)?;
+        decl_function | decl_variable;
         '''
-        if not self._matches(Token.Type.TypeInt32):
+        if self._consume(Token.Type.KeywordFunction):
+            return self._parse_declaration_function()
+        return self._parse_declaration_variable()
+
+    def _parse_declaration_function(self) -> NodeBase:
+        '''
+        Grammar[Declaration::Function]
+        `fn` IDENTIFIER `(` param? `)` `:` TYPES `{` statement* `}`;
+
+        param: TYPES IDENTIFIER (`,` param)*;
+        TYPES: IDENTIFIER | `void` | `int32`;
+        '''
+        # -Id
+        id_token = self._next()
+        assert (id_token.type is Token.Type.Identifier and
+                id_token.value is not None)
+        # -Parameters
+        self._expect(Token.Type.SymbolLParen)
+        params: list[str] = []
+        while token := self._peek():
+            if token.type is Token.Type.SymbolRParen:
+                break
+            if len(params) > 0:
+                self._consume(Token.Type.SymbolComma)
+            param_type_token = self._next()
+            param_id_token = self._next()
+            assert (param_id_token.type is Token.Type.Identifier and
+                    param_id_token.value is not None)
+            params.append(param_id_token.value)
+        self._expect(Token.Type.SymbolRParen)
+        # -Return
+        self._expect(Token.Type.SymbolColon)
+        return_type = self._next()
+        # -Body
+        self._expect(Token.Type.SymbolLBracket)
+        body = self._parse_statement_block()
+        parameters = tuple(params) if params else None
+        return NodeFunctionDeclaration(
+            id_token.file, id_token.position,
+            id_token.value, parameters, body
+        )
+
+    def _parse_declaration_variable(self) -> NodeBase | None:
+        '''
+        Grammar[Declaration::Variable]
+        TYPES IDENTIFIER (`=` expression)?;
+
+        TYPES: `void` | `int32`;
+        '''
+        if not self._matches(*TYPES):
             return None
         _type = self._next()
         _id = self._next()
@@ -215,14 +269,29 @@ class Parser:
         initializer: NodeBase | None = None
         if self._consume(Token.Type.SymbolEq):
             initializer = self._parse_expression()
-        return NodeVarDeclaration(_id.file, _id.position, _id.value, initializer)
+        node = NodeVarDeclaration(_id.file, _id.position, _id.value, initializer)
+        self._expect(Token.Type.SymbolSemicolon)
+        return node
 
+    def _parse_statement_block(self) -> NodeBase:
+        '''
+        Grammar[Statement::Block]
+        `{` statement* `}`
+        '''
+        body: list[NodeBase] = []
+        while token := self._peek():
+            if token.type is Token.Type.SymbolRBracket:
+                break
+            body.append(self._parse_statement())
+        self._consume(Token.Type.SymbolRBracket)
+        return NodeStatementBlock(tuple(body))
 
     def _parse_expression(self) -> NodeBase:
         '''
         Grammar[Expression]
         (IDENTIFIER `=`)? expression_binary;
         '''
+        # -Rule: expression_binary
         node = self._parse_expression_binary()
         # -Rule: assignment
         if self._consume(Token.Type.SymbolEq):
@@ -274,9 +343,31 @@ class Parser:
                 operator, self._parse_expression_unary()
             )
         else:
-            node = self._parse_primary()
+            node = self._parse_expression_postfix()
         return node
 
+    def _parse_expression_postfix(self) -> NodeBase:
+        '''
+        Grammar[Expression::Postfix]
+        primary (`(` argument? `)`)*;
+
+        argument: expression (`,` argument)*;
+        '''
+        node = self._parse_primary()
+        # -Rule: function call
+        if self._consume(Token.Type.SymbolLParen):
+            args: list[NodeBase] = []
+            # -Arguments
+            while token := self._peek():
+                if token.type is Token.Type.SymbolRParen:
+                    break
+                if len(args) > 0:
+                    self._consume(Token.Type.SymbolComma)
+                args.append(self._parse_expression())
+            self._expect(Token.Type.SymbolRParen)
+            arguments = tuple(args) if args else None
+            node = NodeFunctionCall(node, arguments)
+        return node
 
     def _parse_primary(self) -> NodeBase:
         '''

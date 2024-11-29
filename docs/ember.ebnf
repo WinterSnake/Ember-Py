@@ -1,15 +1,21 @@
 program: statements*;
-statement: conditional | loop | `{` statement* `}` | (declaration | expression) `;`;
+statement: conditional | loop | `{` statement* `}` | declaration | `return`? expression `;`;
 condition: `if` `(` expression `)` statement (`else` statement)?;
 loop: loop_for | loop_while | loop_do;
 loop_for: `for` `(` (declaration | expression)? `;` expression? `;` expression? `)` statement;
 loop_while: `while` `(` expression `)` statement;
 loop_do: `do` statement `while` `(` expression `)` `;`;
-declaration: `int32` IDENTIFIER (`=` expression)?;
+declaration: decl_function | decl_var;
+decl_function: `fn` IDENTIFIER `(` decl_function_param* `)` `:` TYPES `{` statement* `}`;
+decl_function_param: TYPES IDENTIFIER (`,` decl_function_param)*;
+decl_var: TYPES IDENTIFIER (`=` expression)? `;`;
 expression: (IDENTIFIER `=`)? expression_binary;
 expression_binary: primary (OPERATOR_BINARY primary)*;
 expression_unary: primary | OPERATOR_UNARY expression_unary;
+expression_postfix: primary (`(` expr_postfix_argument? `)`)*;
+expr_postfix_argument: expression (`,` expr_postfix_argument)*;
 primary: IDENTIFIER | NUMBER | `(` expression `)`;
 
 OPERATOR_BINARY: `+` | `-` | `*` | `/` | `%` | `<` | `>` | `<=` | `>=` | `==` | `!=`;
 OPERATOR_UNARY: `!` | `-`;
+TYPES: `void` | `int32`;
