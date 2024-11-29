@@ -1,15 +1,15 @@
 program: statements*;
-statement: conditional | loop | (declaration | expression) ';';
-loop: loop_for | loop_while | loop_do'
-loop_for: 'for' '(' (declaration | expression)? ';' expression? ';' expression? ')' '{' statement '}';
-loop_while: 'while' '(' expression ')' '{' statement* '}';
-loop_do: 'do' '{' statement* '}' 'while' '(' expression ')' ';';
-declaration: 'int32' IDENTIFIER ('=' expression)?;
-conditional: if '(' expression ')' '{' statement* '}' ('else' '{' statement* '}')?;
-expression: (IDENTIFIER '=')? expression_binary;
+statement: conditional | loop | `{` statement* `}` | (declaration | expression) `;`;
+condition: `if` `(` expression `)` statement (`else` statement)?;
+loop: loop_for | loop_while | loop_do;
+loop_for: `for` `(` (declaration | expression)? `;` expression? `;` expression? `)` statement;
+loop_while: `while` `(` expression `)` statement;
+loop_do: `do` statement `while` `(` expression `)` `;`;
+declaration: `int32` IDENTIFIER (`=` expression)?;
+expression: (IDENTIFIER `=`)? expression_binary;
 expression_binary: primary (OPERATOR_BINARY primary)*;
-expression_unary: ( OPERATOR_UNARY? expression_unary) | primary;
-primary: IDENTIFIER | NUMBER | '(' expression ')';
+expression_unary: primary | OPERATOR_UNARY expression_unary;
+primary: IDENTIFIER | NUMBER | `(` expression `)`;
 
-OPERATOR_BINARY: '+' | '-' | '*' | '/' | '%' | '<' | '>' | '<=' | '>=' | '==' | '!=';
-OPERATOR_UNARY: '!' | '-';
+OPERATOR_BINARY: `+` | `-` | `*` | `/` | `%` | `<` | `>` | `<=` | `>=` | `==` | `!=`;
+OPERATOR_UNARY: `!` | `-`;

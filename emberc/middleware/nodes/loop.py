@@ -23,10 +23,10 @@ class NodeLoop(NodeBase):
 
     # -Constructor
     def __init__(
-        self, condition: NodeBase, body: tuple[NodeBase, ...], run_before_eval: bool
+        self, condition: NodeBase, body: NodeBase, run_before_eval: bool
     ) -> None:
         self.condition: NodeBase = condition
-        self.body: tuple[NodeBase, ...] = body
+        self.body: NodeBase = body
         self.run_before_eval: bool = run_before_eval  # -true for do..while, false for while
 
     # -Dunder Methods
@@ -35,8 +35,7 @@ class NodeLoop(NodeBase):
                 f"{self.body}, run_before_eval={self.run_before_eval})")
 
     def __str__(self) -> str:
-        body = ','.join(str(statement) for statement in self.body)
         if self.run_before_eval:
-            return f"do({self.condition}) {{{body}}}"
+            return f"do {{ {self.body} }} while({self.condition})"
         else:
-            return f"while({self.condition}) {{{body}}}"
+            return f"while({self.condition}) {{ {self.body} }}"
