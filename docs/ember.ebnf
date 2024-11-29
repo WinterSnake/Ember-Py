@@ -1,12 +1,15 @@
 program: statements*;
-statement: conditional | loop_for | loop_while | loop_do | (declaration | expression) ';';
+statement: conditional | loop | (declaration | expression) ';';
+loop: loop_for | loop_while | loop_do'
 loop_for: 'for' '(' (declaration | expression)? ';' expression? ';' expression? ')' '{' statement '}';
 loop_while: 'while' '(' expression ')' '{' statement* '}';
 loop_do: 'do' '{' statement* '}' 'while' '(' expression ')' ';';
 declaration: 'int32' IDENTIFIER ('=' expression)?;
 conditional: if '(' expression ')' '{' statement* '}' ('else' '{' statement* '}')?;
 expression: (IDENTIFIER '=')? expression_binary;
-expression_binary: primary (OPERATOR primary)*;
+expression_binary: primary (OPERATOR_BINARY primary)*;
+expression_unary: ( OPERATOR_UNARY? expression_unary) | primary;
 primary: IDENTIFIER | NUMBER | '(' expression ')';
 
-OPERATOR: '+' | '-' | '*' | '/' | '%' | '<' | '>' | '<=' | '>=' | '==';
+OPERATOR_BINARY: '+' | '-' | '*' | '/' | '%' | '<' | '>' | '<=' | '>=' | '==' | '!=';
+OPERATOR_UNARY: '!' | '-';

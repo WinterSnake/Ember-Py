@@ -15,7 +15,7 @@ from .token import OPERATOR_COUNT, Token
 from ..middleware.nodes import (
     NodeBase, NodeConditional, NodeLoop,
     NodeVarDeclaration, NodeVarAssignment,
-    NodeExpressionBinary, NodeLiteral,
+    NodeExpressionBinary, NodeExpressionUnary, NodeLiteral,
 )
 
 if TYPE_CHECKING:
@@ -31,7 +31,11 @@ Type_OperatorStack = list[tuple[
 LITERALS: tuple[Token.Type, ...] = (
     Token.Type.Identifier, Token.Type.Number,
 )
-OPERATOR_LUT: dict[Token.Type, tuple[NodeExpressionBinary.Type, int]] = {
+OPERATOR_UNARY_LUT: dict[Token.Type, NodeExpressionUnary.Type] = {
+    Token.Type.SymbolBang: NodeExpressionUnary.Type.Not,
+    Token.Type.SymbolMinus: NodeExpressionUnary.Type.Negate,
+}
+OPERATOR_BINARY_LUT: dict[Token.Type, tuple[NodeExpressionBinary.Type, int]] = {
     Token.Type.SymbolPlus: (NodeExpressionBinary.Type.Add, 1),
     Token.Type.SymbolMinus: (NodeExpressionBinary.Type.Sub, 1),
     Token.Type.SymbolAsterisk: (NodeExpressionBinary.Type.Mul, 2),
@@ -42,6 +46,7 @@ OPERATOR_LUT: dict[Token.Type, tuple[NodeExpressionBinary.Type, int]] = {
     Token.Type.SymbolLtEq: (NodeExpressionBinary.Type.LtEq, 3),
     Token.Type.SymbolGtEq: (NodeExpressionBinary.Type.GtEq, 3),
     Token.Type.SymbolEqEq: (NodeExpressionBinary.Type.EqEq, 4),
+    Token.Type.SymbolBangEq: (NodeExpressionBinary.Type.BangEq, 4),
 }
 
 
@@ -100,7 +105,7 @@ class Parser:
     def _parse_statement(self) -> NodeBase | tuple[NodeBase, ...]:
         '''
         Grammar[Statement]
-        conditional | (declaration | expression) ';';
+        conditional | loop | (declaration | expression) ';';
         '''
         # -Rule: conditional
         if self._consume(Token.Type.KeywordIf):
@@ -251,7 +256,7 @@ class Parser:
     def _parse_expression(self) -> NodeBase:
         '''
         Grammar[Expression]
-        expression_binary;
+        (IDENTIFIER '=')? expression_binary;
         '''
         node = self._parse_expression_binary()
         # -Rule: assignment
@@ -265,17 +270,17 @@ class Parser:
         Grammar[Expression::Binary]
         primary ( ('+' | '-' | '*' | '/' | '%') primary)*;
         '''
-        node_stack: list[NodeBase] = [self._parse_primary()]
+        node_stack: list[NodeBase] = [self._parse_expression_unary()]
         operator_stack: Type_OperatorStack = []
         # -Rule: <operator> primary
-        while self._matches(*OPERATOR_LUT.keys()):
+        while self._matches(*OPERATOR_BINARY_LUT.keys()):
             operator_token = self._next()
-            operator = OPERATOR_LUT[operator_token.type]
+            operator = OPERATOR_BINARY_LUT[operator_token.type]
             # -Handle precedence
             while operator_stack and operator[1] <= operator_stack[-1][3]:
                 node = _build_node_expression_binary(node_stack, operator_stack)
                 node_stack.append(node)
-            node_stack.append(self._parse_primary())
+            node_stack.append(self._parse_expression_unary())
             operator_stack.append((
                 operator_token.file, operator_token.position, *operator
             ))
@@ -285,6 +290,23 @@ class Parser:
             node_stack.append(node)
         assert len(node_stack) == 1
         return node_stack.pop()
+
+    def _parse_expression_unary(self) -> NodeBase:
+        '''
+        Grammar[Expression::Unary]
+        primary | ( ('!' | '-') expression_unary);
+        '''
+        node: NodeBase
+        if self._matches(*OPERATOR_UNARY_LUT.keys()):
+            operator_token = self._next()
+            operator = OPERATOR_UNARY_LUT[operator_token.type]
+            node = NodeExpressionUnary(
+                operator_token.file, operator_token.position,
+                operator, self._parse_expression_unary()
+            )
+        else:
+            node = self._parse_primary()
+        return node
 
 
     def _parse_primary(self) -> NodeBase:
@@ -383,4 +405,4 @@ class Parser:
 
 
 ## Body
-assert len(OPERATOR_LUT) == OPERATOR_COUNT, "Not all token symbols handled in Parser.Operator LUT"
+assert len(OPERATOR_BINARY_LUT) == OPERATOR_COUNT, "Not all token symbols handled in Parser.Operator LUT"

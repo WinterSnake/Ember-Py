@@ -35,7 +35,7 @@ class NodeExpressionBinary(NodeContextBase):
     # -Dunder Methods
     def __repr__(self) -> str:
         return (f"NodeExpressionBinary({super().__repr__()}, type="
-                f"{self.type.name}, lhs={{{self.lhs!r}}}, rhs={{{self.rhs!r})}}")
+                f"{self.type.name}, lhs={{{self.lhs!r}}}, rhs={{{self.rhs!r}}})")
 
     def __str__(self) -> str:
         symbol: str = ''
@@ -60,6 +60,8 @@ class NodeExpressionBinary(NodeContextBase):
                 symbol = '>='
             case NodeExpressionBinary.Type.EqEq:
                 symbol = '=='
+            case NodeExpressionBinary.Type.BangEq:
+                symbol = '!='
             case _:
                 raise NotImplementedError(f"Unhandled type '{self.type.name}'")
         return f"({self.lhs} {symbol} {self.rhs})"
@@ -80,3 +82,45 @@ class NodeExpressionBinary(NodeContextBase):
         LtEq = auto()
         GtEq = auto()
         EqEq = auto()
+        BangEq = auto()
+
+
+class NodeExpressionUnary(NodeContextBase):
+    """
+    Ember Language AST Node: Expression Unary
+    - Node that represents a unary expression and it's operator and node
+    """
+
+    # -Contructor
+    def __init__(
+        self, file: Path, position: tuple[int, int, int],
+        _type: Type, node: NodeBase
+    ) -> None:
+        super().__init__(file, position)
+        self.type: NodeExpressionUnary.Type = _type
+        self.node: NodeBase = node
+
+    # -Dunder Methods
+    def __repr__(self) -> str:
+        return (f"NodeExpressionUnary({super().__repr__()}, type="
+                f"{self.type.name}, node={{{self.node!r}}})")
+
+    def __str__(self) -> str:
+        symbol: str = ''
+        match self.type:
+            case NodeExpressionUnary.Type.Not:
+                symbol = '!'
+            case NodeExpressionUnary.Type.Negate:
+                symbol = '-'
+            case _:
+                raise NotImplementedError(f"Unhandled type '{self.type.name}'")
+        return f"({symbol}({self.node}))"
+
+    # -Sub-Classes
+    class Type(IntEnum):
+        '''
+        Ember Unary Type
+        - Represents the node's operator value
+        '''
+        Not = auto()
+        Negate = auto()

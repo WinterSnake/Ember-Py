@@ -24,6 +24,7 @@ SYMBOL_LUT: dict[str, Token.Type] = {
     ':': Token.Type.SymbolColon,
     ';': Token.Type.SymbolSemicolon,
     '=': Token.Type.SymbolEq,
+    '!': Token.Type.SymbolBang,
     '+': Token.Type.SymbolPlus,
     '-': Token.Type.SymbolMinus,
     '*': Token.Type.SymbolAsterisk,
@@ -35,6 +36,7 @@ SYMBOL_LUT: dict[str, Token.Type] = {
     '<=': Token.Type.SymbolLtEq,
     '>=': Token.Type.SymbolGtEq,
     '==': Token.Type.SymbolEqEq,
+    '!=': Token.Type.SymbolBangEq,
 }
 WORD_LUT: dict[str, Token.Type] = {
     # -Keywords
