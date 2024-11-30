@@ -1,22 +1,42 @@
-int32 a = 0;
-while(a != 10)
+/*
+	Test 03: Loops
+
+	Written By: Ryan Smith
+*/
+
+int64 b = 0;
+while (a != 10)
 {
 	a = a + 1;
 }
 
-q = -a;
-
 do
 {
 	a = a - 1;
+	if (a > (b - 10)) 410;
 } while(a > 1);
 
-for (int32 b = 0; b < 10; b = b + 1)
+for (int8 a = 0; a < 20; a = a + 1)
 {
-	!b;
+
 }
 
-for (;;b = b + 1)
+if (b > 20 - 20)
 {
-	b;
+
+} else 20;
+
+for (b = 0; b < 20; b = b + 1) { }
+for (; b < 20; b = c + 2) { }
+for (;; b = c + 2) { }
+for (;;)
+{
+	if (b < 100)
+	{
+		69;
+	}
+	else
+	{
+		29;
+	}
 }

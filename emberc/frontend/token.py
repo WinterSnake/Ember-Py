@@ -77,7 +77,14 @@ class Token:
         KeywordReturn = auto()
         # -Keywords: Types
         TypeVoid = auto()
+        TypeInt8 = auto()
+        TypeInt16 = auto()
         TypeInt32 = auto()
+        TypeInt64 = auto()
+        TypeUInt8 = auto()
+        TypeUInt16 = auto()
+        TypeUInt32 = auto()
+        TypeUInt64 = auto()
         # -Symbols
         SymbolLParen = auto()
         SymbolRParen = auto()

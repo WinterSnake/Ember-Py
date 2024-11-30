@@ -1,0 +1,14 @@
+/*
+	Test 01: Variable Assignment
+
+	Written By: Ryan Smith
+*/
+
+int8 a;
+int16 b = 0;
+int32 c = 10 + b;
+int64 d = f - c;
+uint8 gg = 544 * b;
+uint16 dd = 124 / 8;
+uint32 v = (15 + 200) * (65 - 12);
+uint64 max = 18446744073709551615;

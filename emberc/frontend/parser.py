@@ -37,19 +37,25 @@ OPERATOR_UNARY_LUT: dict[Token.Type, NodeExpressionUnary.Type] = {
     Token.Type.SymbolMinus: NodeExpressionUnary.Type.Negate,
 }
 OPERATOR_BINARY_LUT: dict[Token.Type, tuple[NodeExpressionBinary.Type, int]] = {
-    Token.Type.SymbolPlus: (NodeExpressionBinary.Type.Add, 1),
-    Token.Type.SymbolMinus: (NodeExpressionBinary.Type.Sub, 1),
-    Token.Type.SymbolAsterisk: (NodeExpressionBinary.Type.Mul, 2),
-    Token.Type.SymbolFSlash: (NodeExpressionBinary.Type.Div, 2),
-    Token.Type.SymbolPercent: (NodeExpressionBinary.Type.Mod, 2),
-    Token.Type.SymbolLt: (NodeExpressionBinary.Type.Lt, 3),
-    Token.Type.SymbolGt: (NodeExpressionBinary.Type.Gt, 3),
-    Token.Type.SymbolLtEq: (NodeExpressionBinary.Type.LtEq, 3),
-    Token.Type.SymbolGtEq: (NodeExpressionBinary.Type.GtEq, 3),
-    Token.Type.SymbolEqEq: (NodeExpressionBinary.Type.EqEq, 4),
-    Token.Type.SymbolBangEq: (NodeExpressionBinary.Type.BangEq, 4),
+    Token.Type.SymbolEqEq: (NodeExpressionBinary.Type.EqEq, 1),
+    Token.Type.SymbolBangEq: (NodeExpressionBinary.Type.BangEq, 1),
+    Token.Type.SymbolLt: (NodeExpressionBinary.Type.Lt, 2),
+    Token.Type.SymbolGt: (NodeExpressionBinary.Type.Gt, 2),
+    Token.Type.SymbolLtEq: (NodeExpressionBinary.Type.LtEq, 2),
+    Token.Type.SymbolGtEq: (NodeExpressionBinary.Type.GtEq, 2),
+    Token.Type.SymbolPlus: (NodeExpressionBinary.Type.Add, 3),
+    Token.Type.SymbolMinus: (NodeExpressionBinary.Type.Sub, 3),
+    Token.Type.SymbolAsterisk: (NodeExpressionBinary.Type.Mul, 4),
+    Token.Type.SymbolFSlash: (NodeExpressionBinary.Type.Div, 4),
+    Token.Type.SymbolPercent: (NodeExpressionBinary.Type.Mod, 4),
 }
-TYPES: tuple[Token.Type, ...] = (Token.Type.TypeVoid, Token.Type.TypeInt32)
+TYPES: tuple[Token.Type, ...] = (
+    Token.Type.TypeVoid,
+    Token.Type.TypeInt8, Token.Type.TypeInt16,
+    Token.Type.TypeInt32, Token.Type.TypeInt64,
+    Token.Type.TypeUInt8, Token.Type.TypeUInt16,
+    Token.Type.TypeUInt32, Token.Type.TypeUInt64,
+)
 
 
 ## Function
